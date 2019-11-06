@@ -3,16 +3,12 @@
 //
 #include <SPI.h>
 #include <RH_RF95.h>
+#include "callsign.h"
 
-// for feather m0 version 
-//#define RFM95_CS 8
-//#define RFM95_RST 4
-//#define RFM95_INT 3
- 
-// for shield version
-#define RFM95_CS 10
-#define RFM95_RST 9
-#define RFM95_INT 7
+// from https://learn.adafruit.com/radio-featherwing/wiring#feather-m0-3-10
+#define RFM95_CS  10   // "B"
+#define RFM95_RST 11   // "A"
+#define RFM95_INT  6   // "D"
 
 #define RF95_FREQ 434.0
 
@@ -29,6 +25,27 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 // Connect to the GPS on the hardware port
 Adafruit_GPS GPS(&GPSSerial);
+
+//
+// for logger
+//
+#include <SD.h>
+
+//
+// for sensors
+//
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_ADT7410.h>
+#include <Adafruit_ADXL343.h>
+
+float tempC, accelX, accelY, accelZ;
+ 
+// Create the ADT7410 temperature sensor object
+Adafruit_ADT7410 tempsensor = Adafruit_ADT7410();
+ 
+// Create the ADXL343 accelerometer sensor object
+Adafruit_ADXL343 accel = Adafruit_ADXL343(12345);
 
 uint32_t timer = millis();
 
@@ -93,6 +110,45 @@ void setup_gps()
   GPSSerial.println(PMTK_Q_RELEASE);
 }
 
+void setup_logger()
+{
+  Serial.print("Initializing SD card...");
+
+  if (!SD.begin(4)) {
+    Serial.println("initialization failed!");
+    while (1);
+  }
+
+  Serial.println("initialization done.");
+}
+
+void setup_sensors()
+{
+  Serial.println("Adafruit - ADT7410 + ADX343");
+ 
+  /* Initialise the ADXL343 */
+  if(!accel.begin())
+  {
+    /* There was a problem detecting the ADXL343 ... check your connections */
+    Serial.println("Ooops, no ADXL343 detected ... Check your wiring!");
+    while(1);
+  }
+ 
+  /* Set the range to whatever is appropriate for your project */
+  accel.setRange(ADXL343_RANGE_16_G);
+ 
+  /* Initialise the ADT7410 */
+  if (!tempsensor.begin())
+  {
+    Serial.println("Couldn't find ADT7410!");
+    while (1)
+      ;
+  }
+ 
+  // sensor takes 250 ms to get first readings
+  delay(250);
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -135,7 +191,37 @@ void update_gps_data()
   }
 }
 
+void log_message(String message)
+{
+  log_file = SD.open("test.txt", FILE_WRITE);
+
+  if (log_file) {
+    log_file.println(message);
+    log_file.close();
+  }
+}
+
+void update_sensor_data()
+{
+  /* Get a new accel. sensor event */
+  sensors_event_t event;
+  accel.getEvent(&event);
+ 
+  accelX = event.acceleration.x;
+  accelY = event.acceleration.y;
+  accelZ = event.acceleration.z;
+ 
+  // Read and print out the temperature
+  tempC = tempsensor.readTempC();
+  Serial.print("Temperature: "); Serial.print(tempC); Serial.println("C");
+}
+
 void loop() // run over and over again
 {
   update_gps_data();
+  update_sensor_data();
+  String message = assemble_message();
+  log_message(message);
+  transmit_message(message);
+  deep_sleep(30);
 }
