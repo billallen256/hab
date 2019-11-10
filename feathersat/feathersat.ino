@@ -1,9 +1,18 @@
 //
 // for RFM9x radio
 //
-#include <SPI.h>
-#include <RH_RF95.h>
-#include "callsign.h"
+#include <SPI.h>			// for RFM9x radio and logger
+#include <RH_RF95.h>			// for RFM9x radio
+#include "callsign.h"			// for RFM9x radio
+
+#include <Adafruit_GPS.h>		// for GPS
+
+#include <SD.h>				// for logger
+
+#include <Wire.h>			// for temp and accel sensors
+#include <Adafruit_Sensor.h>		// for temp and accel sensors
+#include <Adafruit_ADT7410.h>		// for temp sensor
+#include <Adafruit_ADXL343.h>		// for accel sensor
 
 // from https://learn.adafruit.com/radio-featherwing/wiring#feather-m0-3-10
 #define RFM95_CS  10   // "B"
@@ -15,32 +24,12 @@
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
-//
-// for GPS
-//
-#include <Adafruit_GPS.h>
-
 // what's the name of the hardware serial port?
 #define GPSSerial Serial1
 
 // Connect to the GPS on the hardware port
 Adafruit_GPS GPS(&GPSSerial);
 
-//
-// for logger
-//
-#include <SD.h>
-
-//
-// for sensors
-//
-#include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_ADT7410.h>
-#include <Adafruit_ADXL343.h>
-
-float tempC, accelX, accelY, accelZ;
- 
 // Create the ADT7410 temperature sensor object
 Adafruit_ADT7410 tempsensor = Adafruit_ADT7410();
  
@@ -48,6 +37,51 @@ Adafruit_ADT7410 tempsensor = Adafruit_ADT7410();
 Adafruit_ADXL343 accel = Adafruit_ADXL343(12345);
 
 uint32_t timer = millis();
+
+class IterStatus {
+  public:
+    bool newNMEAreceived;
+    bool GPSfix;
+    bool GPSparsed;
+    uint8_t GPSfixQuality;
+    uint8_t GPSfixQuality3d;
+    uint8_t GPSsatelliteCount;
+    float latitude;
+    float longitude;
+    float altitude;
+    float temperatureC;
+    float accelerationX;
+    float accelerationY;
+    float accelerationZ;
+
+    IterStatus();
+    void reset();
+};
+
+IterStatus::IterStatus()
+{
+  this->reset();
+}
+
+void IterStatus::reset()
+{
+  this->newNMEAreceived = false;
+  this->GPSfix = false;
+  this->GPSparsed = false;
+  this->GPSfixQuality = 0;
+  this->GPSfixQuality3d = 0;
+  this->GPSsatelliteCount = 0;
+  this->latitude = 0.0;
+  this->longitude = 0.0;
+  this->altitude = 0.0;
+  this->temperatureC = 1000.0;
+  this->accelerationX = 10000.0;
+  this->accelerationY = 10000.0;
+  this->accelerationZ = 10000.0;
+}
+
+// reuse the same IterStatus instance in each loop
+IterStatus iterStatus();
 
 void reset_radio()
 {
@@ -161,18 +195,20 @@ void transmit_message(char *message, int message_length)
   rf95.send((uint8_t *)message, message_length);
 }
 
-void update_gps_data()
+void update_gps_data(iterStatus *status)
 {
   // read data from the GPS in the 'main loop'
   char c = GPS.read();
 
   // if a sentence is received, we can check the checksum, parse it...
   if (GPS.newNMEAreceived()) {
+    status->newNMEAreceived = true;
+
     // a tricky thing here is if we print the NMEA sentence, or data
     // we end up not listening and catching other sentences!
     // so be very wary if using OUTPUT_ALLDATA and trying to print out data
-    Serial.println(GPS.lastNMEA()); // this also sets the newNMEAreceived() flag to false
-    if (!GPS.parse(GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
+
+    if (!GPS.parse(GPS.lastNMEA())) { // this sets the newNMEAreceived() flag to false
       return; // we can fail to parse a sentence in which case we should just wait for another
   }
 
@@ -207,20 +243,21 @@ void update_sensor_data()
   sensors_event_t event;
   accel.getEvent(&event);
  
-  accelX = event.acceleration.x;
-  accelY = event.acceleration.y;
-  accelZ = event.acceleration.z;
+  accelerationX = event.acceleration.x;
+  accelerationY = event.acceleration.y;
+  accelerationZ = event.acceleration.z;
  
   // Read and print out the temperature
-  tempC = tempsensor.readTempC();
-  Serial.print("Temperature: "); Serial.print(tempC); Serial.println("C");
+  temperatureC = tempsensor.readTempC();
+  Serial.print("Temperature: "); Serial.print(temperatureC); Serial.println("C");
 }
 
-void loop() // run over and over again
+void loop()
 {
-  update_gps_data();
-  update_sensor_data();
-  String message = assemble_message();
+  iterStatus.reset();
+  update_gps_data(&status);
+  update_sensor_data(&status);
+  String message = assemble_message(&status);
   log_message(message);
   transmit_message(message);
   deep_sleep(30);
