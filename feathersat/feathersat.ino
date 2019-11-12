@@ -38,7 +38,7 @@ Adafruit_ADXL343 accel = Adafruit_ADXL343(12345);
 
 uint32_t timer = millis();
 
-class IterStatus {
+class Status {
   public:
     bool newNMEAreceived;
     bool GPSfix;
@@ -54,16 +54,25 @@ class IterStatus {
     float accelerationY;
     float accelerationZ;
 
-    IterStatus();
+    Status();
     void reset();
+    void updateTime();
+
+  private:
+    String name;
+    uint32_t lastUpdatedTime;
+    uint32_t lastLoggedTime;
+    uint32_t lastTransmittedTime;
 };
 
-IterStatus::IterStatus()
+Status::Status(String name)
 {
+  this->name = name;
+  this->lastUpdatedTime = 0;
   this->reset();
 }
 
-void IterStatus::reset()
+void Status::reset()
 {
   this->newNMEAreceived = false;
   this->GPSfix = false;
@@ -80,8 +89,27 @@ void IterStatus::reset()
   this->accelerationZ = 10000.0;
 }
 
-// reuse the same IterStatus instance in each loop
-IterStatus iterStatus();
+void Status::updateTime()
+{
+  this->lastUpdatedTime = now(); // TODO figure out now()
+}
+
+void Status::updateLoggedTime()
+{
+  this->lastLoggedTime = now();
+}
+
+void Status::updateTransmittedTime()
+{
+  this->lastTransmittedTime = now();
+}
+
+
+// reuse the same Status instance in each loop
+Status iterStatus("Iter");
+
+// another Status instance to hold maximum values encountered
+Status maxStatus("Max");
 
 void reset_radio()
 {
@@ -190,7 +218,7 @@ void setup()
   setup_gps();
 }
 
-void transmit_message(char *message, int message_length)
+void transmit_message(char *message, int message_length)  // TODO should take String, bool
 {
   rf95.send((uint8_t *)message, message_length);
 }
@@ -227,13 +255,15 @@ void update_gps_data(iterStatus *status)
   }
 }
 
-void log_message(String message)
+void log_message(String filename, String message, bool execute)
 {
-  log_file = SD.open("test.txt", FILE_WRITE);
+  if execute {
+    log_file = SD.open(filename, FILE_WRITE);
 
-  if (log_file) {
-    log_file.println(message);
-    log_file.close();
+    if (log_file) {
+      log_file.println(message);
+      log_file.close();
+    }
   }
 }
 
@@ -252,13 +282,22 @@ void update_sensor_data()
   Serial.print("Temperature: "); Serial.print(temperatureC); Serial.println("C");
 }
 
+void update_maximums(Status *maxStatus, Status *iterStatus)
+{
+
+}
+
 void loop()
 {
   iterStatus.reset();
-  update_gps_data(&status);
-  update_sensor_data(&status);
-  String message = assemble_message(&status);
-  log_message(message);
-  transmit_message(message);
-  deep_sleep(30);
+  update_gps_data(&iterStatus);
+  update_sensor_data(&iterStatus);
+  update_maximums(&maxStatus, &iterStatus);
+  String iterMessage = iterStatus.logMessage();
+  String maxMessage = maxStatus.logMessage();
+  log_message("status.csv", iterMessage, iterStatus.needsToBeLogged());
+  log_message("maximums.csv", maxMessage, maxStatus.needsToBeLogged());
+  transmit_message(iterMessage, iterStatus.needsToBeTransmitted());
+  transmit_message(maxMessage, maxStatus.needsToBeTransmitted());
+  deep_sleep(30);  // TODO figure out deep sleep
 }
