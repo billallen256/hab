@@ -41,14 +41,16 @@ uint32_t timer = millis();
 class Status {
   public:
     bool newNMEAreceived;
-    bool GPSfix;
     bool GPSparsed;
+    bool GPSfix;
     uint8_t GPSfixQuality;
     uint8_t GPSfixQuality3d;
     uint8_t GPSsatelliteCount;
     float latitude;
     float longitude;
     float altitude;
+    float angle;
+    float speed;
     float temperatureC;
     float accelerationX;
     float accelerationY;
@@ -57,6 +59,8 @@ class Status {
     Status();
     void reset();
     void updateTime();
+    bool needsToBeLogged();
+    bool needsToBeTransmitted();
 
   private:
     String name;
@@ -65,18 +69,16 @@ class Status {
     uint32_t lastTransmittedTime;
 };
 
-Status::Status(String name)
-{
+Status::Status(String name) {
   this->name = name;
   this->lastUpdatedTime = 0;
   this->reset();
 }
 
-void Status::reset()
-{
+void Status::reset() {
   this->newNMEAreceived = false;
-  this->GPSfix = false;
   this->GPSparsed = false;
+  this->GPSfix = false;
   this->GPSfixQuality = 0;
   this->GPSfixQuality3d = 0;
   this->GPSsatelliteCount = 0;
@@ -89,21 +91,33 @@ void Status::reset()
   this->accelerationZ = 10000.0;
 }
 
-void Status::updateTime()
-{
+void Status::updateTime() {
   this->lastUpdatedTime = now(); // TODO figure out now()
 }
 
-void Status::updateLoggedTime()
-{
+void Status::updateLoggedTime() {
   this->lastLoggedTime = now();
 }
 
-void Status::updateTransmittedTime()
-{
+void Status::updateTransmittedTime() {
   this->lastTransmittedTime = now();
 }
 
+bool Status::needsToBeLogged() {
+  if (this->lastLoggedTime > this->lastUpdatedTime) {
+    return true;
+  }
+
+  return false;
+}
+
+bool Status::needsToBeTransmitted() {
+  if (this->lastUpdatedTime > this->lastTransmittedTime) {
+    return true;
+  }
+
+  return false;
+}
 
 // reuse the same Status instance in each loop
 Status iterStatus("Iter");
@@ -111,16 +125,14 @@ Status iterStatus("Iter");
 // another Status instance to hold maximum values encountered
 Status maxStatus("Max");
 
-void reset_radio()
-{
+void reset_radio() {
   digitalWrite(RFM95_RST, LOW);
   delay(10);
   digitalWrite(RFM95_RST, HIGH);
   delay(10);
 }
 
-void setup_radio()
-{
+void setup_radio() {
   pinMode(RFM95_RST, OUTPUT);
   digitalWrite(RFM95_RST, HIGH);
   reset_radio();
@@ -150,8 +162,7 @@ void setup_radio()
   rf95.setTxPower(23, false);
 }
 
-void setup_gps()
-{
+void setup_gps() {
   // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
   GPS.begin(9600);
 
@@ -172,8 +183,7 @@ void setup_gps()
   GPSSerial.println(PMTK_Q_RELEASE);
 }
 
-void setup_logger()
-{
+void setup_logger() {
   Serial.print("Initializing SD card...");
 
   if (!SD.begin(4)) {
@@ -184,13 +194,11 @@ void setup_logger()
   Serial.println("initialization done.");
 }
 
-void setup_sensors()
-{
+void setup_sensors() {
   Serial.println("Adafruit - ADT7410 + ADX343");
  
   /* Initialise the ADXL343 */
-  if(!accel.begin())
-  {
+  if(!accel.begin()) {
     /* There was a problem detecting the ADXL343 ... check your connections */
     Serial.println("Ooops, no ADXL343 detected ... Check your wiring!");
     while(1);
@@ -200,8 +208,7 @@ void setup_sensors()
   accel.setRange(ADXL343_RANGE_16_G);
  
   /* Initialise the ADT7410 */
-  if (!tempsensor.begin())
-  {
+  if (!tempsensor.begin()) {
     Serial.println("Couldn't find ADT7410!");
     while (1)
       ;
@@ -211,64 +218,75 @@ void setup_sensors()
   delay(250);
 }
 
-void setup()
-{
+void setup() {
+  // We don't want to eat power by constantly
+  // transmitting beeps if we're in a fast
+  // crash-reboot loop, so adding a delay on
+  // startup.
+  //delay(30000);  TODO uncomment this line when debugging is done
+
   Serial.begin(115200);
   setup_radio();
+
+  // We want a last-resort way to locate
+  // the payload with direction finding
+  // if everything else crashes and reboots.
+  transmit_beep();
+
   setup_gps();
+  update_gps_data(&iterStatus);
+
+  // If we can transmit GPS coordinates,
+  // that's way more useful than just a beep.
+  transmit_location();
+
+  setup_logger();
+  setup_sensors();
 }
 
-void transmit_message(char *message, int message_length)  // TODO should take String, bool
-{
+void transmit_message(char *message, int message_length) {  // TODO should take String, bool
   rf95.send((uint8_t *)message, message_length);
 }
 
-void update_gps_data(iterStatus *status)
-{
-  // read data from the GPS in the 'main loop'
+void update_gps_data(iterStatus *status) {
   char c = GPS.read();
 
-  // if a sentence is received, we can check the checksum, parse it...
-  if (GPS.newNMEAreceived()) {
-    status->newNMEAreceived = true;
+  // We're updating everything, even if
+  // no new message was received,
+  // even if it couldn't parse, and even
+  // if there was no fix.  This info can
+  // still be logged and transmitted to
+  // give some sense of system status
+  // (eg. it's still telemetry).
+  status->newNMEAreceived = GPS.newNMEAreceived();
+  status->GPSparsed = GPS.parse(GPS.lastNMEA()); // lastNMEA() also sets newNMEAreceived() to false
+  status->GPSfix = GPS.fix;
+  status->GPSfixQuality = GPS.fixquality;
+  status->GPSfixQuality3d = GPS.fixquality_3d;
+  status->GPSsatelliteCount = GPS.satellites;
+  status->latitude = GPS.latitude;
+  status->longitude = GPS.longitude;
+  status->altitude = GPS.altitude;
+  status->speed = GPS.speed;
+  status->angle = GPS.angle;
 
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences!
-    // so be very wary if using OUTPUT_ALLDATA and trying to print out data
-
-    if (!GPS.parse(GPS.lastNMEA())) { // this sets the newNMEAreceived() flag to false
-      return; // we can fail to parse a sentence in which case we should just wait for another
-  }
-
-  Serial.print("Fix: "); Serial.print((int)GPS.fix);
-  Serial.print(" quality: "); Serial.println((int)GPS.fixquality);
-
-  if (GPS.fix) {
-    Serial.print("Location: ");
-    Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
-    Serial.print(", ");
-    Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
-    Serial.print("Speed (knots): "); Serial.println(GPS.speed);
-    Serial.print("Angle: "); Serial.println(GPS.angle);
-    Serial.print("Altitude: "); Serial.println(GPS.altitude);
-    Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
-  }
+  // TODO set RTC
 }
 
-void log_message(String filename, String message, bool execute)
-{
+void log_message(String filename, String message, bool execute) {
   if execute {
     log_file = SD.open(filename, FILE_WRITE);
 
     if (log_file) {
       log_file.println(message);
       log_file.close();
+    } else {
+      Serial.println("Could not open log file");
     }
   }
 }
 
-void update_sensor_data()
-{
+void update_sensor_data() {
   /* Get a new accel. sensor event */
   sensors_event_t event;
   accel.getEvent(&event);
@@ -282,13 +300,11 @@ void update_sensor_data()
   Serial.print("Temperature: "); Serial.print(temperatureC); Serial.println("C");
 }
 
-void update_maximums(Status *maxStatus, Status *iterStatus)
-{
+void update_maximums(Status *maxStatus, Status *iterStatus) {
 
 }
 
-void loop()
-{
+void loop() {
   iterStatus.reset();
   update_gps_data(&iterStatus);
   update_sensor_data(&iterStatus);
