@@ -1,3 +1,5 @@
+// vim: expandtab tabstop=2 shiftwidth=2
+
 //
 // for RFM9x radio
 //
@@ -23,6 +25,10 @@
 
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
+
+// Define the battery voltage pin
+// from https://learn.adafruit.com/adafruit-feather-m0-adalogger/power-management
+#define VBATPIN A7
 
 // what's the name of the hardware serial port?
 #define GPSSerial Serial1
@@ -55,6 +61,7 @@ class Status {
     float accelerationX;
     float accelerationY;
     float accelerationZ;
+    float voltage;
 
     Status();
     void reset();
@@ -89,6 +96,7 @@ void Status::reset() {
   this->accelerationX = 10000.0;
   this->accelerationY = 10000.0;
   this->accelerationZ = 10000.0;
+  this->voltage = 0.0;
 }
 
 void Status::updateTime() {
@@ -248,7 +256,16 @@ void transmit_message(char *message, int message_length) {  // TODO should take 
   rf95.send((uint8_t *)message, message_length);
 }
 
-void update_gps_data(iterStatus *status) {
+// from https://learn.adafruit.com/adafruit-feather-m0-adalogger/power-management
+void update_voltage_data(Status *status) {
+  float measuredvbat = analogRead(VBATPIN);
+  measuredvbat *= 2;    // we divided by 2, so multiply back
+  measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
+  measuredvbat /= 1024; // convert to voltage
+  status->voltage = measuredvbat;
+}
+
+void update_gps_data(Status *status) {
   char c = GPS.read();
 
   // We're updating everything, even if
@@ -306,6 +323,7 @@ void update_maximums(Status *maxStatus, Status *iterStatus) {
 
 void loop() {
   iterStatus.reset();
+  update_voltage_data(&iterStatus);
   update_gps_data(&iterStatus);
   update_sensor_data(&iterStatus);
   update_maximums(&maxStatus, &iterStatus);
