@@ -1,5 +1,8 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+#include <time.h>      // to convert to epoch time
+#include <RTCZero.h>   // for built-in real-time-clock
+
 //
 // for RFM9x radio
 //
@@ -15,6 +18,9 @@
 #include <Adafruit_Sensor.h>		// for temp and accel sensors
 #include <Adafruit_ADT7410.h>		// for temp sensor
 #include <Adafruit_ADXL343.h>		// for accel sensor
+
+// from https://github.com/cavemoa/Feather-M0-Adalogger/blob/master/SimpleSleep/SimpleSleep.ino
+RTCZero rtc;
 
 // from https://learn.adafruit.com/radio-featherwing/wiring#feather-m0-3-10
 #define RFM95_CS  10   // "B"
@@ -42,7 +48,16 @@ Adafruit_ADT7410 tempsensor = Adafruit_ADT7410();
 // Create the ADXL343 accelerometer sensor object
 Adafruit_ADXL343 accel = Adafruit_ADXL343(12345);
 
-uint32_t timer = millis();
+time_t get_epoch(uint8_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
+  struct tm t = {0};  // zero out the struct
+  t.tm_year = year;  // only 8-bits, so actual year minus 1900
+  t.tm_mon = month;
+  t.tm_mday = day;
+  t.tm_hour = hour;
+  t.tm_min = minute;
+  t.tm_sec = second;
+  return mkgmtime(&t);
+}
 
 class Status {
   public:
@@ -226,6 +241,11 @@ void setup_sensors() {
   delay(250);
 }
 
+void setup_rtc() {
+  rtc.begin();
+  rtc.setEpoch(0);  // January 1, 1970
+}
+
 void setup() {
   // We don't want to eat power by constantly
   // transmitting beeps if we're in a fast
@@ -241,6 +261,7 @@ void setup() {
   // if everything else crashes and reboots.
   transmit_beep();
 
+  setup_rtc();
   setup_gps();
   update_gps_data(&iterStatus);
 
@@ -287,7 +308,11 @@ void update_gps_data(Status *status) {
   status->speed = GPS.speed;
   status->angle = GPS.angle;
 
-  // TODO set RTC
+  // set RTC to GPS time
+  if (status->GPSparsed) {
+    time_t epoch = get_epoch(GPS.year, GPS.month, GPS.day, GPS.hour, GPS.minute, GPS.seconds);
+    rtc.setEpoch(epoch + GPS.secondsSinceTime());
+  }
 }
 
 void log_message(String filename, String message, bool execute) {
