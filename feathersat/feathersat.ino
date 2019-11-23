@@ -5,7 +5,9 @@
 #include "rtc.h"
 #include "gps.h"
 #include "logger.h"
+#include "power.h"
 #include "sensors.h"
+#include "sleep.h"
 
 // reuse the same Status instance in each loop
 Status iterStatus("Iter");
@@ -28,12 +30,15 @@ void setup() {
   // if everything else crashes and reboots.
   transmit_beep();
 
+  iterStatus.reset();
+  maxStatus.reset();
+
   setup_rtc();
   setup_gps();
-  update_gps_data(&iterStatus);
 
   // If we can transmit GPS coordinates,
   // that's way more useful than just a beep.
+  update_gps_data(&iterStatus);
   transmit_location();
 
   setup_logger();
@@ -53,5 +58,5 @@ void loop() {
   log_message("maximums.csv", maxMessage, maxStatus.needsToBeLogged());
   transmit_message(iterMessage, iterStatus.needsToBeTransmitted());
   transmit_message(maxMessage, maxStatus.needsToBeTransmitted());
-  deep_sleep(30);  // TODO figure out deep sleep
+  deep_sleep(45);  // 45 seconds.  Can't be set to more than 60 seconds.
 }

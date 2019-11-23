@@ -1,7 +1,7 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
-#include <SPI.h>			// for logger
-#include <SD.h>				// for logger
+#include <SPI.h>
+#include <SD.h>
 
 void setup_logger() {
   Serial.print("Initializing SD card...");

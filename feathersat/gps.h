@@ -50,5 +50,4 @@ void update_gps_data(Status *status) {
   status->altitude = GPS.altitude;
   status->speed = GPS.speed;
   status->angle = GPS.angle;
-
 }
