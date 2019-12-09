@@ -3,6 +3,7 @@
 //
 // for RFM9x radio
 //
+#include <string.h>
 #include <SPI.h>			// for RFM9x radio and logger
 #include <RH_RF95.h>			// for RFM9x radio
 #include "callsign.h"			// for RFM9x radio
