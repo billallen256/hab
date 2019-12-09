@@ -54,7 +54,9 @@ void setup_radio() {
   rf95.setTxPower(23, false);
 }
 
-void transmit_message(char *message, int message_length) {  // TODO should take String, bool
-  rf95.send((uint8_t *)message, message_length);
+void transmit_message(char *message, bool execute) {
+  if (execute) {
+    rf95.send((uint8_t *)message, strlen(message));
+  }
 }
 

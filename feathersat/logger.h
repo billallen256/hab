@@ -14,7 +14,7 @@ void setup_logger() {
   Serial.println("initialization done.");
 }
 
-void log_message(String filename, String message, bool execute) {
+void log_message(char *filename, char *message, bool execute) {
   if execute {
     log_file = SD.open(filename, FILE_WRITE);
 

@@ -26,13 +26,13 @@ class Status {
     bool needsToBeTransmitted();
 
   private:
-    String name;
+    char *name;
     uint32_t lastUpdatedTime;
     uint32_t lastLoggedTime;
     uint32_t lastTransmittedTime;
 };
 
-Status::Status(String name) {
+Status::Status(char *name) {
   this->name = name;
   this->lastUpdatedTime = 0;
   this->reset();
@@ -53,6 +53,10 @@ void Status::reset() {
   this->accelerationY = 10000.0;
   this->accelerationZ = 10000.0;
   this->voltage = 0.0;
+}
+
+char *Status::logMessage() {
+  // TODO generate a CSV log string from the class members' values
 }
 
 void Status::updateTime() {

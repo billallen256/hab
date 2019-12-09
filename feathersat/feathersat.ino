@@ -52,8 +52,8 @@ void loop() {
   update_rtc(&iterStatus);  // must happen after update_gps()
   update_sensor_data(&iterStatus);
   update_maximums(&maxStatus, &iterStatus);
-  String iterMessage = iterStatus.logMessage();
-  String maxMessage = maxStatus.logMessage();
+  char *iterMessage = iterStatus.logMessage();
+  char *maxMessage = maxStatus.logMessage();
   log_message("status.csv", iterMessage, iterStatus.needsToBeLogged());
   log_message("maximums.csv", maxMessage, maxStatus.needsToBeLogged());
   transmit_message(iterMessage, iterStatus.needsToBeTransmitted());
