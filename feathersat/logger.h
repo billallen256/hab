@@ -8,21 +8,19 @@ void setup_logger() {
 
   if (!SD.begin(4)) {
     Serial.println("initialization failed!");
-    while (1);
+    while (1);  // TODO might be better to reset so at least the beacon will still work
   }
 
   Serial.println("initialization done.");
 }
 
-void log_message(char *filename, char *message, bool execute) {
-  if execute {
-    log_file = SD.open(filename, FILE_WRITE);
+void write_log(char *filename, unsigned char *message) {
+  log_file = SD.open(filename, FILE_WRITE);
 
-    if (log_file) {
-      log_file.println(message);
-      log_file.close();
-    } else {
-      Serial.println("Could not open log file");
-    }
+  if (log_file) {
+    log_file.println(message);  // TODO want to write bytes here
+    log_file.close();
+  } else {
+    Serial.println("Could not open log file");
   }
 }

@@ -10,10 +10,7 @@
 #include "sleep.h"
 
 // reuse the same Status instance in each loop
-Status iterStatus("Iter");
-
-// another Status instance to hold maximum values encountered
-Status maxStatus("Max");
+Status iterStatus();
 
 void setup() {
   // We don't want to eat power by constantly
@@ -31,7 +28,7 @@ void setup() {
   transmit_beep();
 
   iterStatus.reset();
-  maxStatus.reset();
+  maxAltitude = 0.0;
 
   setup_rtc();
   setup_gps();
@@ -47,16 +44,12 @@ void setup() {
 
 void loop() {
   iterStatus.reset();
+  update_rtc_data(&iterStatus);
   update_voltage_data(&iterStatus);
   update_gps_data(&iterStatus);
-  update_rtc(&iterStatus);  // must happen after update_gps()
   update_sensor_data(&iterStatus);
-  update_maximums(&maxStatus, &iterStatus);
-  char *iterMessage = iterStatus.logMessage();
-  char *maxMessage = maxStatus.logMessage();
-  log_message("status.csv", iterMessage, iterStatus.needsToBeLogged());
-  log_message("maximums.csv", maxMessage, maxStatus.needsToBeLogged());
-  transmit_message(iterMessage, iterStatus.needsToBeTransmitted());
-  transmit_message(maxMessage, maxStatus.needsToBeTransmitted());
+  unsigned char *iterBytes = iterStatus.logBytes();
+  write_log("status.log", iterBytes);
+  transmit_log(iterBytes);
   deep_sleep(45);  // 45 seconds.  Can't be set to more than 60 seconds.
 }

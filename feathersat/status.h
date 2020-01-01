@@ -1,7 +1,10 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+// TODO change this to a struct since a class isn't providing any benefits here
 class Status {
   public:
+    uint32_t elapsedTime;  // mission elapsed time from the RTC in seconds
+    uint32_t GPStime;  // time received from the GPS
     bool newNMEAreceived;
     bool GPSparsed;
     bool GPSfix;
@@ -10,6 +13,7 @@ class Status {
     uint8_t GPSsatelliteCount;
     float latitude;
     float longitude;
+    float maxAltitude;
     float altitude;
     float angle;
     float speed;
@@ -24,21 +28,15 @@ class Status {
     void updateTime();
     bool needsToBeLogged();
     bool needsToBeTransmitted();
-
-  private:
-    char *name;
-    uint32_t lastUpdatedTime;
-    uint32_t lastLoggedTime;
-    uint32_t lastTransmittedTime;
 };
 
-Status::Status(char *name) {
-  this->name = name;
-  this->lastUpdatedTime = 0;
+Status::Status() {
   this->reset();
 }
 
 void Status::reset() {
+  this->elapsedTime = 0;
+  this->GPStime = 0;
   this->newNMEAreceived = false;
   this->GPSparsed = false;
   this->GPSfix = false;
@@ -47,7 +45,10 @@ void Status::reset() {
   this->GPSsatelliteCount = 0;
   this->latitude = 0.0;
   this->longitude = 0.0;
+  this->maxAltitude = 0.0;
   this->altitude = 0.0;
+  this->angle = 0.0;
+  this->speed = 0.0;
   this->temperatureC = 1000.0;
   this->accelerationX = 10000.0;
   this->accelerationY = 10000.0;
@@ -55,38 +56,6 @@ void Status::reset() {
   this->voltage = 0.0;
 }
 
-char *Status::logMessage() {
-  // TODO generate a CSV log string from the class members' values
-}
-
-void Status::updateTime() {
-  this->lastUpdatedTime = now(); // TODO figure out now()
-}
-
-void Status::updateLoggedTime() {
-  this->lastLoggedTime = now();
-}
-
-void Status::updateTransmittedTime() {
-  this->lastTransmittedTime = now();
-}
-
-bool Status::needsToBeLogged() {
-  if (this->lastLoggedTime > this->lastUpdatedTime) {
-    return true;
-  }
-
-  return false;
-}
-
-bool Status::needsToBeTransmitted() {
-  if (this->lastUpdatedTime > this->lastTransmittedTime) {
-    return true;
-  }
-
-  return false;
-}
-
-void update_maximums(Status *maxStatus, Status *iterStatus) {
-
+unsigned char *Status::logBytes() {
+  // TODO generate a byte representation of the struct to log and transmit
 }
