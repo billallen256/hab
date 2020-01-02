@@ -43,12 +43,12 @@ void setup() {
 }
 
 void loop() {
-  iterStatus.reset();
+  reset_status(&iterStatus);
   update_rtc_data(&iterStatus);
   update_voltage_data(&iterStatus);
   update_gps_data(&iterStatus);
   update_sensor_data(&iterStatus);
-  unsigned char *iterBytes = iterStatus.logBytes();
+  unsigned char *iterBytes = status_bytes(&iterStatus);
   write_log("status.log", iterBytes);
   transmit_log(iterBytes);
   deep_sleep(45);  // 45 seconds.  Can't be set to more than 60 seconds.

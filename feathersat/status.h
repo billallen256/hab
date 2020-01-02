@@ -1,8 +1,6 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
-// TODO change this to a struct since a class isn't providing any benefits here
-class Status {
-  public:
+struct status {
     uint32_t elapsedTime;  // mission elapsed time from the RTC in seconds
     uint32_t GPStime;  // time received from the GPS
     bool newNMEAreceived;
@@ -22,40 +20,32 @@ class Status {
     float accelerationY;
     float accelerationZ;
     float voltage;
-
-    Status();
-    void reset();
-    void updateTime();
-    bool needsToBeLogged();
-    bool needsToBeTransmitted();
 };
 
-Status::Status() {
-  this->reset();
+typedef struct status Status;
+
+void reset_status(Status *status) {
+  status->elapsedTime = 0;
+  status->GPStime = 0;
+  status->newNMEAreceived = false;
+  status->GPSparsed = false;
+  status->GPSfix = false;
+  status->GPSfixQuality = 0;
+  status->GPSfixQuality3d = 0;
+  status->GPSsatelliteCount = 0;
+  status->latitude = 0.0;
+  status->longitude = 0.0;
+  status->maxAltitude = 0.0;
+  status->altitude = 0.0;
+  status->angle = 0.0;
+  status->speed = 0.0;
+  status->temperatureC = 1000.0;
+  status->accelerationX = 10000.0;
+  status->accelerationY = 10000.0;
+  status->accelerationZ = 10000.0;
+  status->voltage = 0.0;
 }
 
-void Status::reset() {
-  this->elapsedTime = 0;
-  this->GPStime = 0;
-  this->newNMEAreceived = false;
-  this->GPSparsed = false;
-  this->GPSfix = false;
-  this->GPSfixQuality = 0;
-  this->GPSfixQuality3d = 0;
-  this->GPSsatelliteCount = 0;
-  this->latitude = 0.0;
-  this->longitude = 0.0;
-  this->maxAltitude = 0.0;
-  this->altitude = 0.0;
-  this->angle = 0.0;
-  this->speed = 0.0;
-  this->temperatureC = 1000.0;
-  this->accelerationX = 10000.0;
-  this->accelerationY = 10000.0;
-  this->accelerationZ = 10000.0;
-  this->voltage = 0.0;
-}
-
-unsigned char *Status::logBytes() {
+unsigned char *status_bytes(Status *status) {
   // TODO generate a byte representation of the struct to log and transmit
 }
