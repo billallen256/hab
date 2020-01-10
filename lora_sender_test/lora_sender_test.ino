@@ -3,6 +3,18 @@
 #include <SPI.h>
 #include <RH_RF95.h>
 
+//#define START_SERIAL
+
+#ifdef START_SERIAL
+#define Println(a) (Serial.println(a))
+#define Print(a) (Serial.print(a))
+#else
+#define Println(a)
+#define Print(a)
+#endif
+
+const bool startSerial = false;
+
 // Feather m0 w/wing 
 #define RFM95_RST     11   // "A"
 #define RFM95_CS      10   // "B"
@@ -15,17 +27,20 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 void setup() 
 {
+  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(RFM95_RST, OUTPUT);
   digitalWrite(RFM95_RST, HIGH);
- 
-  Serial.begin(115200);
-  while (!Serial) {
-    delay(1);
-  }
+
+  #ifdef START_SERIAL
+    Serial.begin(115200);
+    while (!Serial) {
+      delay(1);
+    }
+  #endif
  
   delay(100);
  
-  Serial.println("Feather LoRa TX Test!");
+  Println("Feather LoRa TX Test!");
  
   // manual reset
   digitalWrite(RFM95_RST, LOW);
@@ -34,18 +49,18 @@ void setup()
   delay(10);
  
   while (!rf95.init()) {
-    Serial.println("LoRa radio init failed");
-    Serial.println("Uncomment '#define SERIAL_DEBUG' in RH_RF95.cpp for detailed debug info");
+    Println("LoRa radio init failed");
+    Println("Uncomment '#define SERIAL_DEBUG' in RH_RF95.cpp for detailed debug info");
     while (1);
   }
-  Serial.println("LoRa radio init OK!");
+  Println("LoRa radio init OK!");
 
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
   if (!rf95.setFrequency(RF95_FREQ)) {
-    Serial.println("setFrequency failed");
+    Println("setFrequency failed");
     while (1);
   }
-  Serial.print("Set Freq to: "); Serial.println(RF95_FREQ);
+  Print("Set Freq to: "); Println(RF95_FREQ);
 
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
  
@@ -60,18 +75,20 @@ int16_t packetnum = 0;  // packet counter, we increment per xmission
 void loop()
 {
   delay(1000); // Wait 1 second between transmits, could also 'sleep' here!
-  Serial.println("Transmitting..."); // Send a message to rf95_server
+  digitalWrite(LED_BUILTIN, HIGH);
+  Println("Transmitting..."); // Send a message to rf95_server
   
   char radiopacket[20] = "Hello World #      ";
   itoa(packetnum++, radiopacket+13, 10);
-  Serial.print("Sending "); Serial.println(radiopacket);
+  Print("Sending "); Println(radiopacket);
   radiopacket[19] = 0;
   
-  Serial.println("Sending...");
+  Println("Sending...");
   delay(10);
   rf95.send((uint8_t *)radiopacket, 20);
  
-  Serial.println("Waiting for packet to complete..."); 
+  Println("Waiting for packet to complete..."); 
   delay(10);
   rf95.waitPacketSent();
+  digitalWrite(LED_BUILTIN, LOW);
 }
