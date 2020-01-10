@@ -4,3 +4,4 @@ wget -O Adafruit_Sensor-1.0.3.zip https://github.com/adafruit/Adafruit_Sensor/ar
 wget -O Adafruit_ADXL343-1.1.0.zip https://github.com/adafruit/Adafruit_ADXL343/archive/1.1.0.zip  # motion sensor
 wget -O Adafruit_ADT7410-1.0.1.zip https://github.com/adafruit/Adafruit_ADT7410/archive/1.0.1.zip  # temperature sensor
 wget -O Adafruit_GPS-1.2.0.zip https://github.com/adafruit/Adafruit_GPS/archive/1.2.0.zip
+wget -O RadioHead-1.62.zip https://cdn-learn.adafruit.com/assets/assets/000/035/106/original/RadioHead-1.62.zip  # LoRa radio

@@ -12,13 +12,10 @@
 
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
- 
-// Blinky on receipt
-#define LED 13
 
 void setup()
 {
-  pinMode(LED, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(RFM95_RST, OUTPUT);
   digitalWrite(RFM95_RST, HIGH);
  
@@ -56,6 +53,8 @@ void setup()
   // If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then
   // you can set transmitter powers from 5 to 23 dBm:
   rf95.setTxPower(23, false);
+
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void loop()
@@ -68,13 +67,13 @@ void loop()
  
     if (rf95.recv(buf, &len))
     {
-      digitalWrite(LED, HIGH);
+      digitalWrite(LED_BUILTIN, HIGH);
       RH_RF95::printBuffer("Received: ", buf, len);
       Serial.print("Got: ");
       Serial.println((char*)buf);
       Serial.print("RSSI: ");
       Serial.println(rf95.lastRssi(), DEC);
-      digitalWrite(LED, LOW);
+      digitalWrite(LED_BUILTIN, LOW);
     }
     else
     {
