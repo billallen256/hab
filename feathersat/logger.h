@@ -1,17 +1,20 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+#ifndef LOGGER_H
+#define LOGGER_H
+
 #include <SPI.h>
 #include <SD.h>
 
 void setup_logger() {
-  Serial.print("Initializing SD card...");
+  Print("Initializing SD card...");
 
   if (!SD.begin(4)) {
-    Serial.println("initialization failed!");
+   Println("initialization failed!");
     while (1);  // TODO might be better to reset so at least the beacon will still work
   }
 
-  Serial.println("initialization done.");
+  Println("initialization done.");
 }
 
 void write_log(char *filename, unsigned char *message) {
@@ -21,6 +24,8 @@ void write_log(char *filename, unsigned char *message) {
     log_file.println(message);  // TODO want to write bytes here
     log_file.close();
   } else {
-    Serial.println("Could not open log file");
+    Println("Could not open log file");
   }
 }
+
+#endif

@@ -1,5 +1,8 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+#ifndef STATUS_H
+#define STATUS_H
+
 struct status {
     uint32_t elapsedTime;  // mission elapsed time from the RTC in seconds
     uint32_t GPStime;  // time received from the GPS
@@ -49,3 +52,5 @@ void reset_status(Status *status) {
 unsigned char *status_bytes(Status *status) {
   // TODO generate a byte representation of the struct to log and transmit
 }
+
+#endif

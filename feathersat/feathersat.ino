@@ -1,5 +1,6 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+#include "serial.h"
 #include "status.h"
 #include "radio.h"
 #include "rtc.h"
@@ -19,7 +20,7 @@ void setup() {
   // startup.
   //delay(30000);  TODO uncomment this line when debugging is done
 
-  Serial.begin(115200);
+  setup_serial();  // TODO comment out START_SERIAL when debugging is done
   setup_radio();
 
   // We want a last-resort way to locate

@@ -1,5 +1,8 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+#ifndef GPS_H
+#define GPS_H
+
 #include <Adafruit_GPS.h>		// for GPS
 
 // what's the name of the hardware serial port?
@@ -73,3 +76,5 @@ void update_gps_data(Status *status) {
 
   status->maxAltitude = maxAltitude;
 }
+
+#endif

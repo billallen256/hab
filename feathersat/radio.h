@@ -1,5 +1,8 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+#ifndef RADIO_H
+#define RADIO_H
+
 //
 // for RFM9x radio
 //
@@ -31,21 +34,21 @@ void setup_radio() {
   reset_radio();
 
   while (!rf95.init()) {
-    Serial.println("LoRa radio init failed");
-    Serial.println("Uncomment '#define SERIAL_DEBUG' in RH_RF95.cpp for detailed debug info");
+    Println("LoRa radio init failed");
+    Println("Uncomment '#define SERIAL_DEBUG' in RH_RF95.cpp for detailed debug info");
     while (1);
   }
 
-  Serial.println("LoRa radio init OK!");
+  Println("LoRa radio init OK!");
  
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
   if (!rf95.setFrequency(RF95_FREQ)) {
-    Serial.println("setFrequency failed");
+    Println("setFrequency failed");
     while (1);
   }
 
-  Serial.print("Set Freq to: ");
-  Serial.println(RF95_FREQ);
+  Print("Set Freq to: ");
+  Println(RF95_FREQ);
 
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
  
@@ -61,3 +64,4 @@ void transmit_message(char *message, bool execute) {
   }
 }
 
+#endif

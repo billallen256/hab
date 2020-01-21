@@ -1,5 +1,8 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+#ifndef RTC_H
+#define RTC_H
+
 #include <time.h>      // to convert to epoch time
 #include <RTCZero.h>   // for built-in real-time-clock
 
@@ -14,3 +17,5 @@ void setup_rtc() {
 void update_rtc_data(Status *status) {
   status->elapsedTime = rtc.getEpoch();
 }
+
+#endif

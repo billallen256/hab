@@ -1,5 +1,8 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+#ifndef SENSORS_H
+#define SENSORS_H
+
 #include <Wire.h>			// for temp and accel sensors
 #include <Adafruit_Sensor.h>		// for temp and accel sensors
 #include <Adafruit_ADT7410.h>		// for temp sensor
@@ -12,12 +15,12 @@ Adafruit_ADT7410 tempsensor = Adafruit_ADT7410();
 Adafruit_ADXL343 accel = Adafruit_ADXL343(12345);
 
 void setup_sensors() {
-  Serial.println("Adafruit - ADT7410 + ADX343");
+  Println("Adafruit - ADT7410 + ADX343");
  
   /* Initialise the ADXL343 */
   if(!accel.begin()) {
     /* There was a problem detecting the ADXL343 ... check your connections */
-    Serial.println("Ooops, no ADXL343 detected ... Check your wiring!");
+    Println("Ooops, no ADXL343 detected ... Check your wiring!");
     while(1);
   }
  
@@ -26,7 +29,7 @@ void setup_sensors() {
  
   /* Initialise the ADT7410 */
   if (!tempsensor.begin()) {
-    Serial.println("Couldn't find ADT7410!");
+    Println("Couldn't find ADT7410!");
     while (1)
       ;
   }
@@ -46,5 +49,7 @@ void update_sensor_data() {
  
   // Read and print out the temperature
   temperatureC = tempsensor.readTempC();
-  Serial.print("Temperature: "); Serial.print(temperatureC); Serial.println("C");
+  Print("Temperature: "); Print(temperatureC); Println("C");
 }
+
+#endif

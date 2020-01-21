@@ -1,5 +1,8 @@
 // vim: expandtab tabstop=2 shiftwidth=2
 
+#ifndef SLEEP_H
+#define SLEEP_H
+
 #include "rtc.h"
 
 void alarmMatch() {
@@ -14,3 +17,5 @@ void deep_sleep(int seconds) {
   rtc.attachInterrupt(alarmMatch); // Attach function to interupt
   rtc.standbyMode();    // Sleep until next alarm match
 }
+
+#endif

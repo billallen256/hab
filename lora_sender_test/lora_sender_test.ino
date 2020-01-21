@@ -13,8 +13,6 @@
 #define Print(a)
 #endif
 
-const bool startSerial = false;
-
 // Feather m0 w/wing 
 #define RFM95_RST     11   // "A"
 #define RFM95_CS      10   // "B"
