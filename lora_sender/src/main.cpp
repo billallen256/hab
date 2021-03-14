@@ -1,8 +1,8 @@
-// vim: expandtab tabstop=2 shiftwidth=2
-
+#include <Arduino.h>
 #include <SPI.h>
 #include <RH_RF95.h>
 
+// Comment this line out if running headless.
 //#define START_SERIAL
 
 #ifdef START_SERIAL
